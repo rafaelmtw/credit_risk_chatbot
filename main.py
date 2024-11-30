@@ -4,9 +4,37 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 import pandas as pd
 import faiss
+import json
 
 DF = pd.read_csv('QnA_Dataset.csv')
 MODEL = SentenceTransformer('all-MiniLM-L6-v2')
+PERPLEXITY_KEY = "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"
+
+def call_prompt(query):
+    # Prepare payload for the Perplexity API
+    url = "https://api.perplexity.ai/chat/completions"
+    payload = {
+        "model": "llama-3.1-sonar-small-128k-chat",
+        "messages": [{'role': 'user', 'content': query}],
+        "max_tokens": 100,
+        "temperature": 0,
+        "top_p": 0,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {PERPLEXITY_KEY}",
+        "Content-Type": "application/json"
+    }
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        result = response.json()
+        assistant_message = result["choices"][0]["message"]["content"]
+    
+        return assistant_message
+    
+    except requests.exceptions.RequestException as e:
+        print(f"ERROR:\n {str(e)}")
 
 # Function to encode documents in batches
 def batch_encode(batch_size=32):
@@ -47,7 +75,7 @@ def get_perplexity_response(queries):
             + 'user_input: ' + user_input 
     print(user_input)
     
-    perplexity_api_key = "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"
+    # perplexity_api_key = 
     
     queries[-1]['content'] = user_input
 
@@ -64,7 +92,7 @@ def get_perplexity_response(queries):
     }
 
     headers = {
-        "Authorization": f"Bearer {perplexity_api_key}",
+        "Authorization": f"Bearer {PERPLEXITY_KEY}",
         "Content-Type": "application/json"
     }
     try:
@@ -92,23 +120,64 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+# Change this according to the validity
+current_topic_prompt = ['AGE', 'GENDER', 'JOB', 'HOUSING', 'SAVING ACCOUNT BALANCE', 'CHECKING ACCOUNT BALANCE', 'CREDIT AMOUNT', 'CREDIT DURATION', 'PURPOSE OF CREDIT']
+
+# Checking validity depending on the context
+# We have to check agian for the topic
+def check_validity(user_prompt, topic="Age"):
+    res = call_prompt(f""" 
+Does user answer according to the topic: '{topic}' with correct data type? (e.g. Age would have integer and Name would have string answer and so forth).
+
+user_prompt:
+'{user_prompt}'
+
+Return answer strictly as this JSON object: {{"validity": (return 1 if True and return 0 if False)}}\n
+Do not include anything else, just above's JSON object
+    """)
+    
+    
+    
+    print("Raw response:", res)  # Debugging line
+    res = res.strip().replace('json', '').replace('`','').strip()
+    try:
+        # Load the response directly without modification
+        res_json = json.loads(res)
+        print("Parsed response: ", res_json)  # Print the parsed response
+        print(res_json.get('validity'))
+        return res_json.get('validity')  # Get validity
+    except json.JSONDecodeError as e:
+        print("FALSE!!!")
+        print("JSON decode error:", e)
+        return 0  # Handle the error appropriately
+
 # Accept user input
 if prompt := st.chat_input("Write down your prompt here"):
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
+    
     # Display user message in chat message container
     with st.chat_message("user"):
         st.markdown(prompt)
         
-# Display assistant response in chat message container
+    # Display assistant response in chat message container
     with st.chat_message("assistant"):
+        # Check validity, it should prompt the user again if it is false
+        valid = check_validity(prompt)
+        print('valid: ', valid)
 
-        pass_model = [
+        if not valid:  # Check if valid is False
+            response = 'Invalid prompt, please try again.'
+            st.write(response)
+            # st.session_state.messages.append({"role": "assistant", "content": 'Invalid prompt, please try again.'})
+        else:
+            pass_model = [
                 {"role": m["role"], "content": m["content"]}
                 for m in st.session_state.messages
             ]
-        # print("pass_model: " ,pass_model)
-        stream = get_perplexity_response(pass_model)
-        print("Answer:", stream)
-        response = st.write(stream)
-    st.session_state.messages.append({"role": "assistant", "content": stream})
+
+            response = get_perplexity_response(pass_model)
+            print("Answer:", response)
+                
+            st.write(response)
+        st.session_state.messages.append({"role": "assistant", "content": response})
