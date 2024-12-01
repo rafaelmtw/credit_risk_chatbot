@@ -120,7 +120,7 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Change this according to the validity
+# Change this according to the validity :D
 current_topic_prompt = ['AGE', 'GENDER', 'JOB', 'HOUSING', 'SAVING ACCOUNT BALANCE', 'CHECKING ACCOUNT BALANCE', 'CREDIT AMOUNT', 'CREDIT DURATION', 'PURPOSE OF CREDIT']
 
 # Checking validity depending on the context
