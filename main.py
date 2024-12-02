@@ -115,6 +115,9 @@ st.title("Chatbot with Credit Risk API")
 if 'messages' not in st.session_state:
     st.session_state.messages = []
 
+if 'turn' not in st.session_state:
+    st.session_state.turn = 0
+
 # Display chat messages from history on app rerun
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
@@ -122,15 +125,56 @@ for message in st.session_state.messages:
 
 # Change this according to the validity 
 current_topic_prompt = ['AGE', 'GENDER', 'JOB', 'HOUSING', 'SAVING ACCOUNT BALANCE', 'CHECKING ACCOUNT BALANCE', 'CREDIT AMOUNT', 'CREDIT DURATION', 'PURPOSE OF CREDIT']
+result = {'AGE': '', 'GENDER': '', 'JOB':'', 'HOUSING':'', 'SAVING ACCOUNT BALANCE':'', 'CHECKING ACCOUNT BALANCE':'', 'CREDIT AMOUNT':'', 'CREDIT DURATION':'', 'PURPOSE OF CREDIT':'' }
 
 # Checking validity depending on the context
-# We have to check agian for the topic
-def check_validity(user_prompt, topic="Age"):
+def check_validity(user_prompt, topic):
     res = call_prompt(f""" 
 Does user answer according to the topic: '{topic}' with correct data type? (e.g. Age would have integer and Name would have string answer and so forth).
 
 user_prompt:
 '{user_prompt}'
+
+Return answer strictly as this JSON object: {{"validity": (return 1 if True and return 0 if False)}}\n
+Do not include anything else, just above's JSON object
+    """)
+    
+    
+    
+    print("Raw response:", res)  # Debugging line
+    res = res.strip().replace('json', '').replace('`','').strip()
+    try:
+        # Load the response directly without modification
+        res_json = json.loads(res)
+        print("Parsed response: ", res_json)  # Print the parsed response
+        print(res_json.get('validity'))
+        return res_json.get('validity')  # Get validity
+    except json.JSONDecodeError as e:
+        print("FALSE!!!")
+        print("JSON decode error:", e)
+        return 0  # Handle the error appropriately
+
+# Checking the topic turn
+def check_turn(user_prompt, topic):
+    res = call_prompt(f""" 
+Based on this '{topic}' and
+user_prompt:
+'{user_prompt}'
+
+Can you ask them a question to get the value of the next topic: '{current_topic_prompt[st.session_state.turn]}'.
+
+Return answer strictly as this JSON object: {{"validity": (return 1 if True and return 0 if False)}}\n
+Do not include anything else, just above's JSON object
+    """)
+
+# Extract result
+def extract_result(user_prompt, topic):
+    res = call_prompt(f""" 
+Based on this '{topic}' and
+user_prompt:
+'{user_prompt}'
+
+Can you extract the key value and store it in {result[topic]}
 
 Return answer strictly as this JSON object: {{"validity": (return 1 if True and return 0 if False)}}\n
 Do not include anything else, just above's JSON object
@@ -159,25 +203,34 @@ if prompt := st.chat_input("Write down your prompt here"):
     # Display user message in chat message container
     with st.chat_message("user"):
         st.markdown(prompt)
-        
+
     # Display assistant response in chat message container
     with st.chat_message("assistant"):
         # Check validity, it should prompt the user again if it is false
-        valid = check_validity(prompt)
+        valid = check_validity(prompt, current_topic_prompt[st.session_state.turn])
         print('valid: ', valid)
-
+        
+        # Not valid
         if not valid:  # Check if valid is False
             response = 'Invalid prompt, please try again.'
             st.write(response)
             # st.session_state.messages.append({"role": "assistant", "content": 'Invalid prompt, please try again.'})
+        # Valid
         else:
+            st.session_state.turn += 1
+            extract_result(prompt, current_topic_prompt[st.session_state.turn])
             pass_model = [
                 {"role": m["role"], "content": m["content"]}
                 for m in st.session_state.messages
             ]
-
+            # Make the response according to the current turn current_topic_prompt[st.session_state.turn]
+            
+            check_turn(prompt, current_topic_prompt[st.session_state.turn])
             response = get_perplexity_response(pass_model)
-            print("Answer:", response)
+            # print("Answer:", response)
                 
             st.write(response)
         st.session_state.messages.append({"role": "assistant", "content": response})
+
+# 1. make turn conversation
+# 2. 
