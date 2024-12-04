@@ -278,11 +278,11 @@ if prompt := st.chat_input("Write down your prompt here"):
             if st.session_state.turn >= len(current_topic_prompt):
                 # Call the model
                 risk = predict_result(st.session_state.result)[0]
-                risk_response = "good risk"
+                risk_response = "good credit risk"
                 if risk == 1:
-                    risk_response = "bad risk"
-                credit_score = predict_result(st.session_state.result)[1]
-                response = f"You have a {risk_response}, your credit risk score is: {credit_score}"
+                    risk_response = "bad credit risk"
+                risk_proba = predict_result(st.session_state.result)[1]
+                response = f"You have a {risk_response}, with a probability of {risk_proba[0]}"
                 st.write(response)
             
             else:

@@ -2,11 +2,11 @@ import joblib
 import numpy as np
 import string
 
-def remove_punctuation(QnA):
-    if type(QnA) == str: 
+def remove_punctuation(s):
+    if type(s) == str: 
         translator = str.maketrans('', '', string.punctuation)
-        QnA = QnA.translate(translator)
-    return QnA
+        s = s.translate(translator)
+    return s
 
 def HKD_to_DM(hkd):
     dm = hkd*0.234
