@@ -5,7 +5,7 @@ from sentence_transformers import SentenceTransformer
 import pandas as pd
 import faiss
 import json
-from predict_xgboost import predict_new_data
+from predict_xgboost import predict_result
 
 
 DF = pd.read_csv('QnA_Dataset.csv')
@@ -277,9 +277,12 @@ if prompt := st.chat_input("Write down your prompt here"):
             # Now we will call the prediction function and get the risk. 
             if st.session_state.turn >= len(current_topic_prompt):
                 # Call the model
-                # predict_xgboost(result)
-                credit_score = 90.3
-                response = f"Your credit risk score is: {credit_score}"
+                risk = predict_result(st.session_state.result)[0]
+                risk_response = "good risk"
+                if risk == 1:
+                    risk_response = "bad risk"
+                credit_score = predict_result(st.session_state.result)[1]
+                response = f"You have a {risk_response}, your credit risk score is: {credit_score}"
                 st.write(response)
             
             else:
@@ -290,6 +293,3 @@ if prompt := st.chat_input("Write down your prompt here"):
                 
                 st.write(response)
         st.session_state.messages.append({"role": "assistant", "content": response})
-
-# 1. make turn conversation
-# 2. 
