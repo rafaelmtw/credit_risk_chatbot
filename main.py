@@ -5,10 +5,10 @@ from sentence_transformers import SentenceTransformer
 import pandas as pd
 import faiss
 import json
-from predict_xgboost import predict_result
+from model.predict_xgboost import predict_result
 
 
-DF = pd.read_csv('QnA_Dataset.csv')
+DF = pd.read_csv('./data/QnA/QnA_Dataset.csv')
 MODEL = SentenceTransformer('all-MiniLM-L6-v2')
 PERPLEXITY_KEY = "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"
 

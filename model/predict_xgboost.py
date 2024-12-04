@@ -19,7 +19,7 @@ def conversion(result):
     return result
 
 # Define a function to load the model and predict new data
-def predict_new_data(new_data, model_file="xgboost_model.pkl"):
+def predict_new_data(new_data, model_file="./model/xgboost_model.pkl"):
     """Load the saved model and predict on new data."""
     # Load the model
     model = joblib.load(model_file)
