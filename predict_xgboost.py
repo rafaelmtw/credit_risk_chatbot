@@ -3,8 +3,9 @@ import numpy as np
 import string
 
 def remove_punctuation(QnA):
-    translator = str.maketrans('', '', string.punctuation)
-    QnA = QnA.translate(translator)
+    if type(QnA) == str: 
+        translator = str.maketrans('', '', string.punctuation)
+        QnA = QnA.translate(translator)
     return QnA
 
 def HKD_to_DM(hkd):
